@@ -1,4 +1,4 @@
 # JavaSocket
 A Client and Server representation using Java Sockets
 
-Right now only sends one packet of data. I asked StackOverflow if they can help me out!
+Fixed the only one data packet sending issue. Now just have add extra functionality to dynamically create packets and send!
