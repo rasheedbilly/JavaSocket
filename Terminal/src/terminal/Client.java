@@ -28,7 +28,7 @@ public class Client {
         }).start();
     }
 
-    public void runClient(){
+    public void runClient() {
         try {
             Scanner scn = new Scanner(System.in);
 
@@ -44,9 +44,10 @@ public class Client {
 
             // the following loop performs the exchange of 
             // information between client and client handler 
+            System.out.println("Client: " + dis.readUTF());
+            String tosend = scn.nextLine();
             while (true) {
-                System.out.println("Client: "+dis.readUTF());
-                String tosend = scn.nextLine();
+
                 dos.writeUTF(tosend);
 
                 // If client sends exit,close this connection 
@@ -71,5 +72,5 @@ public class Client {
             e.printStackTrace();
         }
     }
-    
+
 }
