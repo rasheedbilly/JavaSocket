@@ -5,102 +5,67 @@
  */
 package terminal;
 
-import java.io.*;
-import java.net.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  *
  * @author Rasheed
  */
+// Java implementation of Server side 
+// It contains two classes : Server and ClientHandler 
+// Save file as Server.java 
+import java.io.*;
+import java.util.*;
+import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+// Server class 
 public class Server {
 
-    private static Socket socket;
-
-    private byte[] byteArray;
+    private byte[] page;
 
     public Server() {
         (new Thread() {
             @Override
             public void run() {
-                runServer();
+                try {
+                    runServer();
+                } catch (IOException ex) {
+                    Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }).start();
     }
 
-    /**
-     * Converts Byte Array to String
-     *
-     * @return
-     */
-    public String ByteArrayToString() {
-        String s;
-        try {
-            s = new String(byteArray, "UTF-8");
-            return s;
-        } catch (UnsupportedEncodingException ex) {
-            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        //String str = new String(byteArray, "UTF-8");
-        return null;
-    }
+    public void runServer() throws IOException {
+        // server is listening on port 22122 
+        ServerSocket ss = new ServerSocket(22122);
+        
+        // running infinite loop for getting 
+        // client request 
+        //DatagramPacket DpReceive = null;
+        while (true) {
+            Socket s = null;
 
-    /**
-     * Runs Server
-     */
-    public void runServer() {
-        try {
-
-            int port = 22122;
-            ServerSocket serverSocket = new ServerSocket(port);
-            System.out.println("Sever: Server Started and listening to the port 22122");
-            //this.serverArea.append("Server Started and listening to the port 22122");
-
-            //Server is running always. This is done using this while(true) loop
-            while (true) {
-                //Reading the message from the client
-                socket = serverSocket.accept();
-                InputStream is = socket.getInputStream();
-                InputStreamReader isr = new InputStreamReader(is);
-                BufferedReader br = new BufferedReader(isr);
-                String number = br.readLine();
-                System.out.println("Server: Message received from client is " + number);
-                //serverArea.append("Message received from client is " + number);
-                
-
-                //Multiplying the number by 2 and forming the return message
-                String returnMessage;
-                try {
-                    int numberInIntFormat = Integer.parseInt(number);
-                    int returnValue = numberInIntFormat * 2;
-                    returnMessage = String.valueOf(returnValue) + "\n";
-                } catch (NumberFormatException e) {
-                    //Input was not a number. Sending proper message back to client.
-                    returnMessage = "Please send a proper number\n";
-                }
-
-                //Sending the response back to the client.
-                OutputStream os = socket.getOutputStream();
-                OutputStreamWriter osw = new OutputStreamWriter(os);
-                BufferedWriter bw = new BufferedWriter(osw);
-                bw.write(returnMessage);
-                System.out.println("Server: Message sent to the client is " + returnMessage);
-                //serverArea.append("Message sent to the client is " + returnMessage);
-                bw.flush();
-                
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
             try {
-                socket.close();
+                s = ss.accept();
+                System.out.println("Server: A new client is connected : " + s);
+
+                // obtaining input and out streams 
+                DataInputStream dis = new DataInputStream(s.getInputStream());
+                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+
+                // create a new thread object 
+                System.out.println("Server: Creating Client Handler thread");
+                Thread t = new ClientHandler(s, dis, dos, page);
+
+                // Invoking the start() method 
+                t.start();
+
             } catch (Exception e) {
+                s.close();
+                e.printStackTrace();
             }
         }
-
     }
 
     /**
@@ -148,8 +113,9 @@ public class Server {
                     content.append(System.lineSeparator());
                 }
             }
-            System.out.println(content.toString());
-            byteArray = content.toString().getBytes();
+            //System.out.println(content.toString());
+            //byteArray = content.toString().getBytes();
+            page = content.toString().getBytes();
         } finally {
             connection.disconnect();
         }
