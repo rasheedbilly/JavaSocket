@@ -73,4 +73,16 @@ public class Client {
         }
     }
 
+    private byte[] appendPage(byte[] a, byte[] b) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(a);
+        outputStream.write(b);
+
+        return outputStream.toByteArray();
+    }
+
+    private void printPage(byte[] page) {
+
+    }
+
 }
