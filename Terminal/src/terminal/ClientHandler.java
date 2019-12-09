@@ -9,12 +9,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -22,10 +18,10 @@ import java.util.logging.Logger;
  */
 class ClientHandler extends Thread {
 
-    final DataInputStream dis;
-    final DataOutputStream dos;
-    final Socket s;
-    final byte[] page;
+    private final DataInputStream dis;
+    private final DataOutputStream dos;
+    private final Socket s;
+    private final byte[] page, b;
 
     private Integer size;
     private Integer payloadLength;
@@ -38,6 +34,7 @@ class ClientHandler extends Thread {
         this.dis = dis;
         this.dos = dos;
         this.page = page;
+        this.b = toBytes(page.length);
     }
 
     @Override
@@ -46,13 +43,14 @@ class ClientHandler extends Thread {
         String received;
 
         try {
-            dos.writeUTF("Put the shit in");
+            dos.writeUTF("Please enter parameters");
             received = dis.readUTF();
-
-            received = "500 100 1 xyz";
+            if (received.equals("")) {
+                received = "500 100 1 xyz";
+            }
 
             //Parameter assignment
-            size = Integer.valueOf(received.split(" ")[0]);
+            size = Integer.valueOf(received.split(" ")[0]); //b?
             payloadLength = Integer.valueOf(received.split(" ")[1]);
             timeout = Integer.valueOf(received.split(" ")[2]);
             userID = received.split(" ")[3];
@@ -61,23 +59,21 @@ class ClientHandler extends Thread {
         }
 
         //Helpful numbers
-        int numPackets = page.length / size;
-        int indicator = 1;
+        int numPackets = size / payloadLength;
         boolean notLast = true;
         int start = 0;
         int count = 0;
 
         while (true) {
             try {
-                //dos.writeUTF(Arrays.toString(Arrays.copyOfRange(page, start, start+payloadLength)));
-                
                 //Send byte[] to Client
-                if(count <= numPackets-2)
+                if (count <= numPackets - 2) {
                     notLast = true;
-                else
+                } else {
                     notLast = false;
-                
-                byte[] packet = getPacket(intToByte(count%128), notLast, Arrays.copyOfRange(page, start, start+payloadLength));
+                }
+
+                byte[] packet = getPacket((byte) (count % 128), notLast, Arrays.copyOfRange(page, start, start + payloadLength));
                 dos.writeUTF(byteArrayToString(packet));
                 start = start + payloadLength;
                 count++;
@@ -86,41 +82,69 @@ class ClientHandler extends Thread {
                 if (count >= numPackets) {
                     break;
                 }
-            } catch (IOException ex) {}
+            } catch (IOException ex) {
+            }
 
-            if (!notLast) 
+            if (!notLast) {
                 break;
-            
+            }
         }
         System.out.println("Done!");
-
     }
 
+    /**
+     * Converts integer to 32 binary represented as 4 bytes
+     * @param i
+     * @return 
+     */
+    private static byte[] toBytes(int i) {
+        byte[] result = new byte[4];
+
+        result[0] = (byte) (i >> 24);
+        result[1] = (byte) (i >> 16);
+        result[2] = (byte) (i >> 8);
+        result[3] = (byte) (i /*>> 0*/);
+
+        return result;
+    }
+
+    /**
+     * Creates a packet of data
+     * A byte array that contains a header and the payload
+     * @param sn
+     * @param ind
+     * @param pl
+     * @return
+     * @throws IOException 
+     */
     private byte[] getPacket(byte sn, boolean ind, byte[] pl) throws IOException {
         //Create Header
         //a sequence number sn, the page content size b, the number of bytes nb of page content in the packet, and an indicator 
-        byte[] header = new byte[]{sn, intToByte(pl.length), intToByte(pl.length), booleanToByte(ind)};
+        //[SeqNum, b, pl size, indicator]
+        //byte[] header = new byte[]{sn, intToByte(pl.length), intToByte(pl.length), booleanToByte(ind)};
+        byte[] header = new byte[]{sn, b[0], b[1], b[2], b[3], intToByte(pl.length), booleanToByte(ind)};
 
         //Add payload
-        //sn=8, size=8, length=8, i=1 -> offset = 25
         return concatinateByteArray(header, pl);
-
-        //Send
-    }
-    
-    private String ByteArrayToString(byte[] ba, int delta, int start, int end){
-        return Arrays.toString(ba);
-    }
-    
-    private byte[] StringToByteArray(String str){
-        return str.getBytes();
     }
 
+    /**
+     * Converts a boolean variable to a byte
+     * true = 1
+     * false = 0
+     * @param b
+     * @return 
+     */
     private static byte booleanToByte(boolean b) {
         boolean vIn = b;
         return (byte) (vIn ? 1 : 0);
     }
 
+    /**
+     * Converts an integer into a byte
+     * @param i
+     * @return 
+     */
     private static byte intToByte(int i) {
         if (i < 278) {
             return (byte) i;
@@ -129,6 +153,13 @@ class ClientHandler extends Thread {
         }
     }
 
+    /**
+     * Concatinates two byte arrays
+     * @param a
+     * @param b
+     * @return
+     * @throws IOException 
+     */
     private byte[] concatinateByteArray(byte[] a, byte[] b) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(a);
@@ -136,13 +167,13 @@ class ClientHandler extends Thread {
 
         return outputStream.toByteArray();
     }
-    
-    private String byteArrayToString(byte[] ar){
+
+    /**
+     * Converts a byte array into a String
+     * @param ar
+     * @return 
+     */
+    private String byteArrayToString(byte[] ar) {
         return Arrays.toString(ar);
     }
-    
-    private byte[] getSubByteArray(byte[] a, int start, int stop){
-        return Arrays.copyOfRange(a, start, stop);
-    }
-
 }

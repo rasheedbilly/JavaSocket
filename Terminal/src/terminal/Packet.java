@@ -15,6 +15,7 @@ public class Packet {
     
     private int sequenceNumber;
     private int indicater;
+    private int totalSize;
     private byte[] payload;
 
     public Packet(int sequenceNumber, int indicater, byte[] payload) {
@@ -25,8 +26,9 @@ public class Packet {
     
     public Packet(byte[] fullPacket){
         sequenceNumber = fullPacket[0];
-        indicater = fullPacket[3];
-        payload = Arrays.copyOfRange(fullPacket, 3, fullPacket.length);
+        this.totalSize = fullPacket.length;
+        indicater = fullPacket[6];
+        payload = Arrays.copyOfRange(fullPacket, 7, fullPacket.length);
     }
     
 
@@ -40,6 +42,10 @@ public class Packet {
 
     public byte[] getPayload() {
         return payload;
+    }
+
+    public int getTotalSize() {
+        return totalSize;
     }
     
     

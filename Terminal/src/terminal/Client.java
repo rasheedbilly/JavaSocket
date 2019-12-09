@@ -22,6 +22,10 @@ public class Client {
 
     private ArrayList<Packet> packets;
     private byte[] page;
+    private Integer size;
+    private Integer payloadLength;
+    private Integer timeout;
+    private String userID;
 
     public Client() {
 
@@ -51,55 +55,85 @@ public class Client {
             //Get Client parameters
             System.out.println("Client: " + dis.readUTF());
 
-            //Read byte[]
-            //System.out.println("Client: " + dis.read);
             String tosend = scn.nextLine();
             dos.writeUTF(tosend);
+            if(tosend.equals(""))
+                tosend = "500 100 1 xyz";
+            
+            //Parameter assignment
+            size = Integer.valueOf(tosend.split(" ")[0]); //b?
+            payloadLength = Integer.valueOf(tosend.split(" ")[1]);
+            timeout = Integer.valueOf(tosend.split(" ")[2]);
+            userID = tosend.split(" ")[3];
+            
+            long T1 = System.currentTimeMillis(), T2;
+            int bytesSoFar = 0;
             int count = 0;
+            Packet p;
+
             while (true) {
-                //incoming data stream
+                //incoming data stream from Client Handler
                 String received = dis.readUTF();
-                //packets.add(new Packet(new byte[]{1, 22, 22, 1, 24, 24, 34}));
-                packets.add(new Packet(StringToByteArray(received)));
-
-                // If client sends exit,close this connection 
-                // and then break from the while loop 
-                if (tosend.equals("Exit")) { // || received.getBytes()[4] == 0
-                    System.out.println("Client: Closing this connection : " + s);
-                    s.close();
-                    System.out.println("Client: Connection closed");
-                    break;
+                
+                //Recorded when stream was recieved
+                T2 = System.currentTimeMillis();
+                
+                //Adds revieved data into packet ArrayList
+                p = new Packet(StringToByteArray(received));
+                packets.add(p);
+                
+                if((T2-T1) >= timeout){
+                    System.out.println("Client: timeout");
                 }
+                if(p.getTotalSize() > size){
+                    System.out.println("Client: size exceeded");
+                }
+                
+                //Adds number of bytes recieved so far
+                bytesSoFar += p.getPayload().length;
 
-                //System.out.println("Client received:" + received);
-                if(packets.get(count).getIndicater() == 0){
+                System.out.println("Client received:" + received);
+                if (packets.get(count).getIndicater() == 0) {
                     break;
                 }
                 count++;
             }
-            System.out.println("Loading page..");
+
+            System.out.println("\nOkay\nLoading page..\n");
             System.out.println(new String(loadPage()));
-            System.out.println("Page loaded");
-            
-            
-            
-            // closing resources 
+            System.out.println("\nPage loaded");
+
+            s.close();
             scn.close();
             dis.close();
             dos.close();
+            System.out.println("\nClient: Connection closed");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Loads page into one byte array
+     * @return
+     * @throws IOException 
+     */
     private byte[] loadPage() throws IOException {
         byte[] array = new byte[0];
-        for(int i = 0; i < packets.size(); i++){
+        for (int i = 0; i < packets.size(); i++) {
             array = appendPage(array, packets.get(i).getPayload());
         }
         return array;
     }
 
+    /**
+     * Concatinates two byte arrays
+     * @param a
+     * @param b
+     * @return
+     * @throws IOException 
+     */
     private byte[] appendPage(byte[] a, byte[] b) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(a);
@@ -108,10 +142,11 @@ public class Client {
         return outputStream.toByteArray();
     }
 
-    private String ByteArrayToString(byte[] ba) {
-        return Arrays.toString(ba);
-    }
-
+    /**
+     * Converts String to byte array
+     * @param str
+     * @return 
+     */
     private static byte[] StringToByteArray(String str) {
 
         String[] byteValues = str.substring(1, str.length() - 1).split(",");
@@ -122,6 +157,14 @@ public class Client {
         }
 
         return bytes;
+    }
+    
+    private static void Sort(ArrayList al){
+        int flips = al.size()/128;
+        ArrayList temp;
+        for(int i = 0; i < flips; i++){
+            
+        }
     }
 
     private static void quickSort(byte[] array, int left, int right) {
@@ -160,16 +203,9 @@ public class Client {
             quickSort(array, i, right);
         }
     }
-
     private static void exchange(byte[] array, int i, int j) {
         byte temp = array[i];
         array[i] = array[j];
         array[j] = temp;
-    }
-
-    private void printByteArrayList(ArrayList al) {
-        for (int i = 0; i < al.size(); i++) {
-            System.out.println(al.get(i));
-        }
     }
 }
